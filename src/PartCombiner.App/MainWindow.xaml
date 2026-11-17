@@ -202,13 +202,36 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <StackPanel Orientation="Horizontal">
                     <ContentControl Content="{StaticResource Logo}" VerticalAlignment="Center" Focusable="False" />
                     <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="Part Combiner" FontFamily="{StaticResource Font.Display}" FontSize="19" FontWeight="SemiBold" />
-                        <TextBlock Text="Rejoin split archives and files" Style="{StaticResource Text.Muted}" FontSize="12.5" Margin="0,1,0,0" />
+                        <TextBlock Text="Split and rejoin archives and files" Style="{StaticResource Text.Muted}" FontSize="12.5" Margin="0,1,0,0" />
                     </StackPanel>
                 </StackPanel>
+
+                <!-- Combine / Split -->
+                <Border Grid.Row="1" HorizontalAlignment="Left" CornerRadius="8" Padding="3" Margin="0,18,0,0"
+                        Background="{DynamicResource Brush.SegmentTrack}" IsEnabled="{Binding CanSwitchMode}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="CombineTab" AutomationProperties.Name="Combine" Style="{StaticResource Segment}" GroupName="Mode" IsChecked="{Binding IsCombineMode}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE71B;" FontSize="12" Margin="0,0,7,0" />
+                                <TextBlock Text="Combine" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="SplitTab" AutomationProperties.Name="Split" Style="{StaticResource Segment}" GroupName="Mode" IsChecked="{Binding IsSplitMode}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE8C6;" FontSize="12" Margin="0,0,7,0" />
+                                <TextBlock Text="Split" />
+                            </StackPanel>
+                        </RadioButton>
+                    </StackPanel>
+                </Border>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                 <Button x:Name="UpdateBadge" Style="{StaticResource Button.PillAccent}" Margin="0,0,8,0"
                         ToolTip="{Binding UpdateTooltip}" Click="OnUpdateClick" IsEnabled="{Binding IsIdle}"
@@ -239,8 +262,12 @@
                 </StackPanel>
             </Grid>
 
+            <!-- Split mode replaces everything below the header -->
+            <local:SplitView Grid.Row="1" Grid.RowSpan="3" DataContext="{Binding Split}"
+                             Visibility="{Binding DataContext.IsSplitMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}" />
+
             <!-- Content: empty drop zone or the list of sets -->
-            <Grid Grid.Row="1" Margin="0,20,0,0">
+            <Grid Grid.Row="1" Margin="0,20,0,0" Visibility="{Binding IsCombineMode, Converter={StaticResource BoolToVis}}">
                 <Grid Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}">
                     <Rectangle RadiusX="14" RadiusY="14" StrokeThickness="1.5" StrokeDashArray="4 3"
                                Stroke="{DynamicResource Brush.BorderStrong}" Fill="{DynamicResource Brush.Surface}" />
@@ -256,13 +283,13 @@
                                    Style="{StaticResource Text.Muted}" HorizontalAlignment="Center" TextAlignment="Center"
                                    TextWrapping="Wrap" Margin="0,5,0,0" />
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
-                            <Button Style="{StaticResource Button.Secondary}" Click="OnBrowseFiles">
+                            <Button Style="{StaticResource Button.Secondary}" Click="OnBrowseFiles" AutomationProperties.Name="Browse files">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource Icon}" Text="&#xE8E5;" FontSize="13" Margin="0,0,8,0" />
                                     <TextBlock Text="Browse files" />
                                 </StackPanel>
                             </Button>
-                            <Button Style="{StaticResource Button.Secondary}" Click="OnBrowseFolder" Margin="8,0,0,0">
+                            <Button Style="{StaticResource Button.Secondary}" Click="OnBrowseFolder" Margin="8,0,0,0" AutomationProperties.Name="Browse folder">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource Icon}" Text="&#xE8B7;" FontSize="13" Margin="0,0,8,0" />
                                     <TextBlock Text="Browse folder" />
@@ -315,7 +342,8 @@
             </Grid>
 
             <!-- Options -->
-            <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0,14,0,0" Padding="18,14,18,16">
+            <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0,14,0,0" Padding="18,14,18,16"
+                    Visibility="{Binding IsCombineMode, Converter={StaticResource BoolToVis}}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="86" />
@@ -400,7 +428,7 @@
             </Border>
 
             <!-- Footer: status, progress, actions -->
-            <Grid Grid.Row="3" Margin="2,16,0,0">
+            <Grid Grid.Row="3" Margin="2,16,0,0" Visibility="{Binding IsCombineMode, Converter={StaticResource BoolToVis}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -446,7 +474,7 @@
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <TextBlock Style="{StaticResource Icon}" Text="&#xE896;" FontSize="30" HorizontalAlignment="Center"
                            Foreground="{DynamicResource Brush.Accent}" />
-                <TextBlock Text="Drop to add" FontFamily="{StaticResource Font.Display}" FontSize="17" FontWeight="SemiBold"
+                <TextBlock Text="{Binding DropText}" FontFamily="{StaticResource Font.Display}" FontSize="17" FontWeight="SemiBold"
                            HorizontalAlignment="Center" Margin="0,12,0,0" />
             </StackPanel>
         </Grid>

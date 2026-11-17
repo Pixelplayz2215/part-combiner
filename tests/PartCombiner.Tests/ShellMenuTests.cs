@@ -8,7 +8,8 @@ public sealed class ShellMenuTests : IDisposable
 {
     private readonly string _root = @"Software\PartCombinerTests\" + Guid.NewGuid().ToString("N")[..8];
 
-    public void Dispose() => Registry.CurrentUser.DeleteSubKeyTree(@"Software\PartCombinerTests", throwOnMissingSubKey: false);
+    // Only this test's own key: other test classes use sibling keys at the same time.
+    public void Dispose() => Registry.CurrentUser.DeleteSubKeyTree(_root, throwOnMissingSubKey: false);
 
     [Fact]
     public void Enable_WritesFileAndFolderVerbs_AndDisableRemovesThem()

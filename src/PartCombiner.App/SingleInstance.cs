@@ -51,7 +51,12 @@ public sealed class SingleInstance : IDisposable
             // Several copies can start at once; the first may still be setting up its pipe.
             client.Connect(TimeSpan.FromSeconds(5));
             _ = AllowSetForegroundWindow(ASFW_ANY); // so the running window may come to the front
-            var full = paths.Select(p => { try { return Path.GetFullPath(p); } catch (Exception) { return p; } }).ToArray();
+            // Paths are made absolute (the running copy has a different working folder); switches like --split stay as they are.
+            var full = paths.Select(p =>
+            {
+                if (p.StartsWith("--", StringComparison.Ordinal)) return p;
+                try { return Path.GetFullPath(p); } catch (Exception) { return p; }
+            }).ToArray();
             client.Write(JsonSerializer.SerializeToUtf8Bytes(full));
             client.Flush();
             client.WaitForPipeDrain();

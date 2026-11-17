@@ -68,7 +68,34 @@ public sealed class MainViewModel : ObservableObject
         _queueTimer.Tick += (_, _) => FlushQueuedPaths();
 
         _statusText = DefaultStatus();
+
+        Split = new SplitViewModel(settings, () => _engine);
+        Split.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(SplitViewModel.IsBusy)) Raise(nameof(CanSwitchMode)); };
+        Split.Finished += (_, firstPart) => { if (_openFolderWhenDone) Reveal(firstPart); };
     }
+
+    // ----- Combine / Split -----
+
+    public SplitViewModel Split { get; }
+
+    private bool _isSplitMode;
+
+    public bool IsSplitMode
+    {
+        get => _isSplitMode;
+        set { if (SetField(ref _isSplitMode, value)) Raise(nameof(IsCombineMode), nameof(DropText)); }
+    }
+
+    public string DropText => _isSplitMode ? "Drop to split" : "Drop to add";
+
+    public bool IsCombineMode
+    {
+        get => !_isSplitMode;
+        set => IsSplitMode = !value;
+    }
+
+    /// <summary>Stay on the current view while it's working.</summary>
+    public bool CanSwitchMode => !IsBusy && !Split.IsBusy;
 
     public ObservableCollection<PartSetViewModel> Items { get; } = [];
 
@@ -96,6 +123,7 @@ public sealed class MainViewModel : ObservableObject
         _settings.SevenZipPath = engine.ExecutablePath;
         Raise(nameof(EngineAvailable), nameof(EngineText), nameof(EngineTooltip));
         RefreshItems();
+        Split.EngineChanged();
         return true;
     }
 
@@ -302,7 +330,7 @@ public sealed class MainViewModel : ObservableObject
         private set
         {
             if (SetField(ref _isBusy, value))
-                Raise(nameof(CanCombine), nameof(IsIdle), nameof(TaskbarState));
+                Raise(nameof(CanCombine), nameof(IsIdle), nameof(TaskbarState), nameof(CanSwitchMode));
         }
     }
 

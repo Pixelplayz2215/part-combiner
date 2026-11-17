@@ -93,10 +93,48 @@ public sealed partial class SevenZipEngine
     /// Extract <paramref name="archivePath"/> (the first volume for multi-part archives) into
     /// <paramref name="outputDir"/>. The password goes through stdin, never the command line.
     /// </summary>
-    public async Task<ExtractResult> ExtractAsync(
+    public Task<ExtractResult> ExtractAsync(
         string archivePath,
         string outputDir,
         string? password,
+        IProgress<ExtractProgress>? progress,
+        CancellationToken ct) =>
+        RunAsync(Path.GetDirectoryName(archivePath),
+            ["x", "-o" + outputDir, "-y", "-aou", "-bso0", "-bsp1", "-bse2", "-sccUTF-8", "--", archivePath],
+            // 7-Zip only reads this line if the archive turns out to be encrypted.
+            // An empty line makes it fail with "Wrong password" instead of waiting forever.
+            [password ?? ""], progress, ct);
+
+    /// <summary>
+    /// Pack <paramref name="source"/> (a file or a whole folder) into a new archive. <paramref name="type"/> is
+    /// "7z" or "zip". A folder keeps its name inside the archive, so extracting gives the folder back.
+    /// With a <paramref name="password"/>, the contents are AES-256 encrypted (for 7z the file names too).
+    /// The password goes through stdin, never the command line.
+    /// </summary>
+    public Task<ExtractResult> CreateArchiveAsync(
+        string source,
+        string archivePath,
+        string type,
+        string? password,
+        IProgress<ExtractProgress>? progress,
+        CancellationToken ct)
+    {
+        var args = new List<string> { "a", "-t" + type, "-mx5", "-ssw", "-bso0", "-bsp1", "-bse2", "-sccUTF-8" };
+        string[] input = [];
+        if (!string.IsNullOrEmpty(password))
+        {
+            args.Add("-p"); // no value: 7-Zip asks for it (twice: enter + verify), which we answer on stdin
+            args.Add(type == "7z" ? "-mhe=on" : "-mem=AES256");
+            input = [password, password];
+        }
+        args.AddRange(["--", archivePath, source]);
+        return RunAsync(Path.GetDirectoryName(Path.GetFullPath(source).TrimEnd('\\')), [.. args], input, progress, ct);
+    }
+
+    private async Task<ExtractResult> RunAsync(
+        string? workingDirectory,
+        string[] args,
+        string[] stdinLines,
         IProgress<ExtractProgress>? progress,
         CancellationToken ct)
     {
@@ -111,9 +149,9 @@ public sealed partial class SevenZipEngine
             StandardInputEncoding = utf8,
             StandardOutputEncoding = utf8,
             StandardErrorEncoding = utf8,
-            WorkingDirectory = Path.GetDirectoryName(archivePath) ?? Environment.CurrentDirectory,
+            WorkingDirectory = workingDirectory ?? Environment.CurrentDirectory,
         };
-        foreach (var arg in new[] { "x", "-o" + outputDir, "-y", "-aou", "-bso0", "-bsp1", "-bse2", "-sccUTF-8", "--", archivePath })
+        foreach (var arg in args)
             psi.ArgumentList.Add(arg);
 
         using var process = new Process { StartInfo = psi };
@@ -129,11 +167,12 @@ public sealed partial class SevenZipEngine
         try { process.PriorityClass = ProcessPriorityClass.BelowNormal; }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { }
 
-        // 7-Zip only reads this line if the archive turns out to be encrypted.
-        // An empty line makes it fail with "Wrong password" instead of waiting forever.
+        // Answers to 7-Zip's password prompts. Closing stdin afterwards means any further prompt fails
+        // instead of waiting forever.
         try
         {
-            await process.StandardInput.WriteLineAsync(password ?? "").ConfigureAwait(false);
+            foreach (var line in stdinLines)
+                await process.StandardInput.WriteLineAsync(line).ConfigureAwait(false);
             await process.StandardInput.FlushAsync(CancellationToken.None).ConfigureAwait(false);
             process.StandardInput.Close();
         }

@@ -13,7 +13,7 @@ public partial class MainWindow : Window
     private readonly string[] _startupPaths;
     private bool _closeRequested;
 
-    public MainWindow(AppSettings settings, string[] startupPaths)
+    public MainWindow(AppSettings settings, string[] startupPaths, string? splitSource = null)
     {
         InitializeComponent();
         _settings = settings;
@@ -42,6 +42,11 @@ public partial class MainWindow : Window
         };
         Loaded += async (_, _) =>
         {
+            if (splitSource is not null && (System.IO.File.Exists(splitSource) || System.IO.Directory.Exists(splitSource)))
+            {
+                _vm.IsSplitMode = true;
+                _vm.Split.SetSource(splitSource);
+            }
             if (_startupPaths.Length > 0)
                 _vm.QueuePaths(_startupPaths);
 
@@ -93,8 +98,22 @@ public partial class MainWindow : Window
     public void ReceiveFromOtherLaunch(string[] paths)
     {
         BringToFront();
+        int split = Array.FindIndex(paths, a => a.Equals("--split", StringComparison.OrdinalIgnoreCase));
+        if (split >= 0)
+        {
+            if (split + 1 < paths.Length && _vm.CanSwitchMode)
+            {
+                _vm.IsSplitMode = true;
+                _vm.Split.SetSource(paths[split + 1]);
+            }
+            return;
+        }
+        paths = paths.Where(p => !p.StartsWith("--", StringComparison.Ordinal)).ToArray();
         if (paths.Length > 0)
+        {
+            if (_vm.CanSwitchMode) _vm.IsSplitMode = false; // parts handed over are for combining
             _vm.QueuePaths(paths);
+        }
     }
 
     private void BringToFront()
@@ -139,7 +158,11 @@ public partial class MainWindow : Window
     {
         DropOverlay.Visibility = Visibility.Collapsed;
         e.Handled = true;
-        if (e.Data.GetData(DataFormats.FileDrop) is string[] paths)
+        if (e.Data.GetData(DataFormats.FileDrop) is not string[] paths || paths.Length == 0)
+            return;
+        if (_vm.IsSplitMode)
+            _vm.Split.SetSource(paths[0]); // one thing at a time to split
+        else
             await _vm.AddPathsAsync(paths);
     }
 
@@ -224,20 +247,26 @@ public partial class MainWindow : Window
 
     protected override async void OnClosing(CancelEventArgs e)
     {
-        if (_vm.IsBusy)
+        if (_vm.IsBusy || _vm.Split.IsBusy)
         {
             e.Cancel = true;
             if (_closeRequested) return;
 
-            var answer = MessageBox.Show(this, "Combining is still running. Stop it and close?",
+            var what = _vm.Split.IsBusy ? "Splitting" : "Combining";
+            var answer = MessageBox.Show(this, $"{what} is still running. Stop it and close?",
                 "Part Combiner", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (answer != MessageBoxResult.Yes) return;
 
             // Wait for the run to stop so 7-Zip is shut down and temporary files are cleaned up.
             _closeRequested = true;
             _vm.Cancel();
-            try { if (_vm.CurrentRun is not null) await _vm.CurrentRun; }
-            catch (Exception) { /* already reported in the list */ }
+            _vm.Split.Cancel();
+            try
+            {
+                if (_vm.CurrentRun is not null) await _vm.CurrentRun;
+                if (_vm.Split.CurrentRun is not null) await _vm.Split.CurrentRun;
+            }
+            catch (Exception) { /* already reported */ }
             Close();
             return;
         }

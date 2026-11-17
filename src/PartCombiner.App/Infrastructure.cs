@@ -46,6 +46,10 @@ public sealed class AppSettings
     public bool OpenFolderWhenDone { get; set; } = true;
     public string? SevenZipPath { get; set; }
     public bool CheckForUpdates { get; set; } = true;
+    public int SplitParts { get; set; } = 4;
+    public PartCombiner.Core.SplitStyle SplitStyle { get; set; } = PartCombiner.Core.SplitStyle.Numbered;
+    public bool SplitWriteCrc { get; set; }
+    public string? SplitOutputFolder { get; set; }
     public double WindowWidth { get; set; } = 760;
     public double WindowHeight { get; set; } = 820;
     public SavedPlacement? Placement { get; set; }

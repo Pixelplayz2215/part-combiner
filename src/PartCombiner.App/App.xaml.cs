@@ -54,7 +54,11 @@ public partial class App : Application
         }
 
         var settings = AppSettings.Load();
-        var window = new MainWindow(settings, e.Args.Where(a => !a.StartsWith("--", StringComparison.Ordinal)).ToArray());
+        // --split "path" opens the Split view with that file or folder chosen.
+        int splitAt = Array.FindIndex(e.Args, a => a.Equals("--split", StringComparison.OrdinalIgnoreCase));
+        string? splitSource = splitAt >= 0 && splitAt + 1 < e.Args.Length ? e.Args[splitAt + 1] : null;
+        var paths = e.Args.Where((a, i) => !a.StartsWith("--", StringComparison.Ordinal) && (splitAt < 0 || i != splitAt + 1)).ToArray();
+        var window = new MainWindow(settings, paths, splitSource);
         MainWindow = window;
         window.Show();
 

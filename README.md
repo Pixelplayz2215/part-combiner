@@ -1,6 +1,6 @@
 # Part Combiner
 
-A small, minimal Windows app that puts split archives and files back together.
+A small, minimal Windows app that puts split archives and files back together, and splits them too.
 Drop in any one part (or a folder) and it finds the rest, checks that every part is present and
 belongs to the same set, then extracts or re-joins them. The dark or light theme follows your Windows setting.
 
@@ -49,6 +49,30 @@ extracted with 7-Zip into the folder next to the parts:
 | **Open folder when done** | Shows the result in Explorer. |
 | **Check for updates** | Looks for a newer release on GitHub when the app starts (on by default). |
 | **Explorer right-click menu** | Adds *Combine with Part Combiner* to the right-click menu of part files (`.001`, `.part1`, `.r00`, `.z01`, `.rar` …) and folders. On Windows 11 it's under *Show more options*. Written for your account only (no admin); turning it off removes it again. If you move the exe, the entry follows it the next time you start the app. |
+
+## Splitting
+
+Switch to **Split** at the top of the window, then drop in a file or folder (or use **Choose file** / **Choose
+folder**). Pick how many parts you want and how they're named:
+
+| Style | Example | Notes |
+| --- | --- | --- |
+| Numbered | `movie.mkv.001`, `.002` … | Plain byte split |
+| .part | `movie.mkv.part1` … (`part01` with 10 or more parts) | Plain byte split |
+| Letters | `movie.mkv.aa`, `.ab` … | Plain byte split, up to 676 parts |
+| 7z archive | `movie.7z.001` … | Packed with 7-Zip first; works for folders |
+| Zip archive | `movie.zip.001` … | Packed with 7-Zip first; works for folders |
+
+- You get exactly the number of parts you ask for, all the same size except a smaller last one. A very small file
+  may not divide that many ways; the preview tells you before you start.
+- **Password:** the 7z and Zip styles can be encrypted with AES-256 (7z also hides the file names). Plain byte splits
+  can't hold a password. Zip passwords can only use plain ASCII characters; use 7z for passwords with accents.
+  The password is never saved and goes to 7-Zip through stdin, not the command line.
+- **.crc file:** plain splits can include a Total Commander style `.crc` file, so joining them is checked against the
+  original size and CRC32.
+- Existing files are never overwritten, cancelling removes any parts already written, and afterwards the app checks
+  that it recognizes the parts as one complete set.
+- `PartCombiner.exe --split "path"` opens the Split view with that file or folder chosen.
 
 ## Supported part names
 

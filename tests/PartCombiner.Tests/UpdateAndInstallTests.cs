@@ -115,7 +115,7 @@ public sealed class InstallerTests : IDisposable
 
     public void Dispose()
     {
-        Registry.CurrentUser.DeleteSubKeyTree(@"Software\PartCombinerTests", throwOnMissingSubKey: false);
+        Registry.CurrentUser.DeleteSubKeyTree(_regRoot, throwOnMissingSubKey: false); // only ours; others run in parallel
         _d.Dispose();
     }
 
