@@ -40,11 +40,53 @@ public partial class MainWindow : Window
             if (_settings.Placement is { } placement)
                 WindowPlacement.Apply(this, placement);
         };
-        Loaded += (_, _) =>
+        Loaded += async (_, _) =>
         {
             if (_startupPaths.Length > 0)
                 _vm.QueuePaths(_startupPaths);
+
+            await Task.Delay(TimeSpan.FromSeconds(3)); // let the window settle first
+            await _vm.CheckForUpdatesAsync();
         };
+    }
+
+    // ----- Updates -----
+
+    private async void OnUpdateClick(object sender, RoutedEventArgs e)
+    {
+        if (_vm.Update is not { } update) return;
+        string version = update.Version.ToString(3), current = Core.UpdateChecker.CurrentVersion.ToString(3);
+
+        if (!MainViewModel.CanSelfUpdate(out _))
+        {
+            if (MessageBox.Show(this, $"Part Combiner {version} is available (you have {current}).\n\nOpen the download page?",
+                    "Part Combiner", MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
+                OpenUrl(update.PageUrl);
+            return;
+        }
+
+        var answer = MessageBox.Show(this,
+            $"Part Combiner {version} is available (you have {current}).\n\n" +
+            "Yes — download it now and restart\nNo — see what's new on GitHub",
+            "Part Combiner", MessageBoxButton.YesNoCancel, MessageBoxImage.Information);
+        if (answer == MessageBoxResult.No)
+        {
+            OpenUrl(update.PageUrl);
+            return;
+        }
+        if (answer != MessageBoxResult.Yes) return;
+
+        if (await _vm.DownloadUpdateAsync() is string exe)
+        {
+            ((App)Application.Current).RestartAfterClose(exe);
+            Close();
+        }
+    }
+
+    private static void OpenUrl(string url)
+    {
+        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { }
     }
 
     /// <summary>Paths from a later launch of the exe (Open with, the Explorer menu, a drop onto the exe).</summary>

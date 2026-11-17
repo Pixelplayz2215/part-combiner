@@ -23,24 +23,6 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
-        <!-- Small app mark, drawn as vectors so it stays crisp at any DPI. -->
-        <Viewbox x:Key="Logo" x:Shared="False" Width="34" Height="34">
-            <Canvas Width="256" Height="256">
-                <Rectangle Width="256" Height="256" RadiusX="64" RadiusY="64">
-                    <Rectangle.Fill>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="#6366F1" Offset="0" />
-                            <GradientStop Color="#8B5CF6" Offset="1" />
-                        </LinearGradientBrush>
-                    </Rectangle.Fill>
-                </Rectangle>
-                <Rectangle Canvas.Left="50" Canvas.Top="64" Width="44" Height="44" RadiusX="11" RadiusY="11" Fill="White" Opacity="0.55" />
-                <Rectangle Canvas.Left="106" Canvas.Top="64" Width="44" Height="44" RadiusX="11" RadiusY="11" Fill="White" Opacity="0.55" />
-                <Rectangle Canvas.Left="162" Canvas.Top="64" Width="44" Height="44" RadiusX="11" RadiusY="11" Fill="White" Opacity="0.55" />
-                <Rectangle Canvas.Left="50" Canvas.Top="138" Width="156" Height="54" RadiusX="13" RadiusY="13" Fill="White" />
-            </Canvas>
-        </Viewbox>
-
         <!-- One card per detected set -->
         <DataTemplate DataType="{x:Type local:PartSetViewModel}">
             <Border Style="{StaticResource Card}" Margin="0,0,0,8" Padding="14,12,10,12">
@@ -227,7 +209,16 @@
                         <TextBlock Text="Rejoin split archives and files" Style="{StaticResource Text.Muted}" FontSize="12.5" Margin="0,1,0,0" />
                     </StackPanel>
                 </StackPanel>
-                <Button Grid.Column="1" Style="{StaticResource Button.Pill}" VerticalAlignment="Center"
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="UpdateBadge" Style="{StaticResource Button.PillAccent}" Margin="0,0,8,0"
+                        ToolTip="{Binding UpdateTooltip}" Click="OnUpdateClick" IsEnabled="{Binding IsIdle}"
+                        Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Icon}" Text="&#xE896;" FontSize="11" Margin="0,0,6,0" />
+                        <TextBlock Text="{Binding UpdateText}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource Button.Pill}" VerticalAlignment="Center"
                         ToolTip="{Binding EngineTooltip}" Click="OnEngineClick">
                     <StackPanel Orientation="Horizontal">
                         <Ellipse x:Name="EngineDot" Width="7" Height="7" Margin="0,0,7,0" VerticalAlignment="Center">
@@ -245,6 +236,7 @@
                         <TextBlock Text="{Binding EngineText}" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
+                </StackPanel>
             </Grid>
 
             <!-- Content: empty drop zone or the list of sets -->
@@ -397,6 +389,9 @@
                                   IsChecked="{Binding RecycleParts}" Margin="0,0,28,10" />
                         <CheckBox Style="{StaticResource Switch}" Content="Open folder when done"
                                   IsChecked="{Binding OpenFolderWhenDone}" Margin="0,0,28,10" />
+                        <CheckBox Style="{StaticResource Switch}" Content="Check for updates"
+                                  IsChecked="{Binding CheckForUpdates}" Margin="0,0,28,10"
+                                  ToolTip="Looks for a newer version on GitHub when Part Combiner starts. Nothing about you or your files is sent." />
                         <CheckBox Style="{StaticResource Switch}" Content="Explorer right-click menu"
                                   IsChecked="{Binding ShowInExplorerMenu}" Margin="0,0,0,10"
                                   ToolTip="Adds &quot;Combine with Part Combiner&quot; to the right-click menu of split parts and folders.&#x0a;On Windows 11 it's under &quot;Show more options&quot;. Only for your account; no admin needed." />

@@ -151,6 +151,115 @@ public sealed class MainViewModel : ObservableObject
         set { if (SetField(ref _openFolderWhenDone, value)) _settings.OpenFolderWhenDone = value; }
     }
 
+    // ----- Updates -----
+
+    private UpdateInfo? _update;
+
+    public bool CheckForUpdates
+    {
+        get => _settings.CheckForUpdates;
+        set
+        {
+            if (_settings.CheckForUpdates == value) return;
+            _settings.CheckForUpdates = value;
+            Raise(nameof(CheckForUpdates));
+            if (value)
+                _ = CheckForUpdatesAsync(announce: true);
+            else
+                SetUpdate(null);
+        }
+    }
+
+    public bool UpdateAvailable => _update is not null;
+
+    public UpdateInfo? Update => _update;
+
+    public string UpdateText => _update is null ? "" : $"Update to {_update.Version.ToString(3)}";
+
+    public string UpdateTooltip => _update is null ? "" :
+        $"Part Combiner {_update.Version.ToString(3)} is available (you have {UpdateChecker.CurrentVersion.ToString(3)}).\nClick to update.";
+
+    /// <summary>Asks GitHub for a newer release. Quiet unless <paramref name="announce"/> or an update turns up.</summary>
+    public async Task CheckForUpdatesAsync(bool announce = false)
+    {
+        if (!_settings.CheckForUpdates) return;
+        var update = await UpdateChecker.CheckAsync(UpdateChecker.CurrentVersion, CancellationToken.None);
+        if (!_settings.CheckForUpdates) return;
+        SetUpdate(update);
+        if (announce && !IsBusy)
+            SetStatus(update is null ? "You have the latest version" : $"Part Combiner {update.Version.ToString(3)} is available");
+    }
+
+    private void SetUpdate(UpdateInfo? update)
+    {
+        _update = update;
+        Raise(nameof(UpdateAvailable), nameof(Update), nameof(UpdateText), nameof(UpdateTooltip));
+    }
+
+    /// <summary>
+    /// The published app is one self-contained exe, so updating is: download the new exe, check it, swap it in.
+    /// Not possible for development builds (exe + DLLs) or a folder this user can't write to.
+    /// </summary>
+    public static bool CanSelfUpdate(out string exePath)
+    {
+        exePath = Environment.ProcessPath ?? "";
+        // Assembly.Location is empty exactly when running as a single-file bundle, which is what we want to know.
+#pragma warning disable IL3000
+        bool singleFile = string.IsNullOrEmpty(typeof(MainViewModel).Assembly.Location);
+#pragma warning restore IL3000
+        if (!singleFile || exePath.Length == 0) return false;
+        try
+        {
+            var probe = Path.Combine(Path.GetDirectoryName(exePath)!, $".pc-write-test-{Environment.ProcessId}");
+            File.WriteAllBytes(probe, []);
+            File.Delete(probe);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Downloads and swaps in the update. Returns the exe to restart into, or null if it failed (status says why).</summary>
+    public async Task<string?> DownloadUpdateAsync()
+    {
+        if (_update is null || IsBusy || !CanSelfUpdate(out var exe)) return null;
+
+        IsBusy = true;
+        OverallProgress = 0;
+        SetStatus($"Downloading Part Combiner {_update.Version.ToString(3)}…");
+        var download = exe + ".download";
+        try
+        {
+            var progress = new Progress<double>(f =>
+            {
+                OverallProgress = f;
+                SetStatus($"Downloading Part Combiner {_update.Version.ToString(3)}…  {f:P0}");
+            });
+            var error = await UpdateChecker.DownloadAsync(_update, download, progress, CancellationToken.None);
+            if (error is not null)
+            {
+                SetStatus(error, error: true);
+                return null;
+            }
+            UpdateChecker.Swap(exe, download);
+            SetStatus("Update installed — restarting…");
+            return exe;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            SetStatus("Couldn't install the update: " + ex.Message, error: true);
+            try { if (File.Exists(download)) File.Delete(download); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            return null;
+        }
+        finally
+        {
+            IsBusy = false;
+            OverallProgress = 0;
+        }
+    }
+
     /// <summary>The "Combine with Part Combiner" item in Explorer's right-click menu (stored in the registry, not settings).</summary>
     public bool ShowInExplorerMenu
     {

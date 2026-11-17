@@ -140,6 +140,54 @@
         </Style.Triggers>
     </Style>
 
+    <!-- Small app mark, drawn as vectors so it stays crisp at any DPI. Shared by the main and setup windows. -->
+    <Viewbox x:Key="Logo" x:Shared="False" Width="34" Height="34">
+        <Canvas Width="256" Height="256">
+            <Rectangle Width="256" Height="256" RadiusX="64" RadiusY="64">
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#6366F1" Offset="0" />
+                        <GradientStop Color="#8B5CF6" Offset="1" />
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <Rectangle Canvas.Left="50" Canvas.Top="64" Width="44" Height="44" RadiusX="11" RadiusY="11" Fill="White" Opacity="0.55" />
+            <Rectangle Canvas.Left="106" Canvas.Top="64" Width="44" Height="44" RadiusX="11" RadiusY="11" Fill="White" Opacity="0.55" />
+            <Rectangle Canvas.Left="162" Canvas.Top="64" Width="44" Height="44" RadiusX="11" RadiusY="11" Fill="White" Opacity="0.55" />
+            <Rectangle Canvas.Left="50" Canvas.Top="138" Width="156" Height="54" RadiusX="13" RadiusY="13" Fill="White" />
+        </Canvas>
+    </Viewbox>
+
+    <!-- Accent pill: the "Update available" badge -->
+    <Style x:Key="Button.PillAccent" TargetType="Button" BasedOn="{StaticResource Button.Pill}">
+        <Setter Property="Background" Value="{DynamicResource Brush.AccentSoft}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.AccentText}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Destructive action (Uninstall) -->
+    <Style x:Key="Button.Danger" TargetType="Button" BasedOn="{StaticResource Button.Primary}">
+        <Setter Property="Background" Value="{DynamicResource Brush.Danger}" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Opacity" Value="0.9" />
+                <Setter Property="Background" Value="{DynamicResource Brush.Danger}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Opacity" Value="0.8" />
+                <Setter Property="Background" Value="{DynamicResource Brush.Danger}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
     <!-- ===== Toggle switch (CheckBox) ===== -->
     <Style x:Key="Switch" TargetType="CheckBox">
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />

@@ -31,3 +31,7 @@ if ($LASTEXITCODE -ne 0) { throw "Publish failed" }
 
 $exe = Get-Item publish/PartCombiner.exe
 "Built $($exe.FullName) ($([math]::Round($exe.Length / 1MB, 1)) MB)"
+
+# The installer is the same program: named "...Setup.exe" it opens the setup window instead.
+Copy-Item publish/PartCombiner.exe publish/PartCombinerSetup.exe -Force
+"Built $((Get-Item publish/PartCombinerSetup.exe).FullName) (installer)"

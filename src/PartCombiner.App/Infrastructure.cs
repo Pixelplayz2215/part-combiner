@@ -45,12 +45,14 @@ public sealed class AppSettings
     public bool RecycleParts { get; set; }
     public bool OpenFolderWhenDone { get; set; } = true;
     public string? SevenZipPath { get; set; }
+    public bool CheckForUpdates { get; set; } = true;
     public double WindowWidth { get; set; } = 760;
     public double WindowHeight { get; set; } = 820;
     public SavedPlacement? Placement { get; set; }
 
-    private static string FilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PartCombiner", "settings.json");
+    public static string Folder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PartCombiner");
+
+    private static string FilePath => Path.Combine(Folder, "settings.json");
 
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 

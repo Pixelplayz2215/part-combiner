@@ -8,9 +8,20 @@ belongs to the same set, then extracts or re-joins them. The dark or light theme
 
 ## Download
 
-Get `PartCombiner.exe` from the [latest release](../../releases/latest). It's a single file with nothing to
-install and runs on 64-bit Windows 10 and 11. Install [7-Zip](https://www.7-zip.org/) too if you want to extract
-RAR, 7z or ZIP archives.
+From the [latest release](../../releases/latest), for 64-bit Windows 10 and 11:
+
+- **`PartCombinerSetup.exe`**: installs Part Combiner for your account (no admin rights needed) with a Start menu
+  shortcut, an optional desktop shortcut and Explorer menu entry, and an entry in *Settings › Apps* to uninstall it.
+- **`PartCombiner.exe`**: the portable version. Run it from anywhere; nothing is installed.
+
+Install [7-Zip](https://www.7-zip.org/) too if you want to extract RAR, 7z or ZIP archives.
+
+### Updates
+
+When a newer release is published here, an **Update** badge appears at the top of the window. Click it to download
+the new version and restart into it. The download is used only if its SHA-256 matches the checksum GitHub publishes
+for the file. The check sends nothing about you or your files, and you can turn it off with **Check for updates**.
+If the app's folder can't be written to, the badge opens the release page instead.
 
 ## Using it
 
@@ -36,6 +47,7 @@ extracted with 7-Zip into the folder next to the parts:
 | **Password** | For protected archives. It's passed to 7-Zip via stdin, never on the command line. |
 | **Move parts to Recycle Bin** | After a successful combine only. Windows asks before deleting anything too big for the Recycle Bin. |
 | **Open folder when done** | Shows the result in Explorer. |
+| **Check for updates** | Looks for a newer release on GitHub when the app starts (on by default). |
 | **Explorer right-click menu** | Adds *Combine with Part Combiner* to the right-click menu of part files (`.001`, `.part1`, `.r00`, `.z01`, `.rar` …) and folders. On Windows 11 it's under *Show more options*. Written for your account only (no admin); turning it off removes it again. If you move the exe, the entry follows it the next time you start the app. |
 
 ## Supported part names
@@ -95,13 +107,14 @@ Needs the .NET 10 SDK.
 
 ```powershell
 .\build.ps1                      # runs the tests, then builds publish\PartCombiner.exe (standalone, ~60 MB)
+                                 # and publish\PartCombinerSetup.exe (the same program; that name opens the installer)
 .\build.ps1 -FrameworkDependent  # small exe that needs the .NET 10 Desktop Runtime
 dotnet test                      # tests only
 ```
 
 Project layout:
 
-- `src/PartCombiner.Core`: part detection, consistency checks, byte joiner, 7-Zip runner
+- `src/PartCombiner.Core`: part detection, consistency checks, byte joiner, 7-Zip runner, update checker, installer
 - `src/PartCombiner.App`: the WPF interface (dark/light theme follows Windows)
 - `tests/PartCombiner.Tests`: unit tests plus end-to-end tests against the installed 7-Zip
 - `tools/make-icon.ps1`: regenerates the app icon

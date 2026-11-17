@@ -1,0 +1,118 @@
+<Window x:Class="PartCombiner.SetupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding WindowTitle}"
+        Width="560" SizeToContent="Height" ResizeMode="CanMinimize"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource Brush.Bg}"
+        Foreground="{DynamicResource Brush.Text}"
+        FontFamily="{StaticResource Font.Ui}"
+        FontSize="13"
+        UseLayoutRounding="True">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
+
+    <Grid Margin="28,22,28,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header, same as the main window -->
+        <StackPanel Orientation="Horizontal">
+            <ContentControl Content="{StaticResource Logo}" VerticalAlignment="Center" Focusable="False" />
+            <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="Part Combiner" FontFamily="{StaticResource Font.Display}" FontSize="19" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Text.Muted}" FontSize="12.5" Margin="0,1,0,0" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- ===== Ready: choose and confirm ===== -->
+        <StackPanel Grid.Row="1" Margin="0,26,0,0" Visibility="{Binding IsReady, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="{Binding Heading}" FontFamily="{StaticResource Font.Display}" FontSize="22" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding Description}" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
+                       LineHeight="19" />
+
+            <!-- Install options -->
+            <Border Style="{StaticResource Card}" Margin="0,20,0,0" Padding="18,14,18,16"
+                    Visibility="{Binding IsInstall, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <TextBlock Text="Install to" Style="{StaticResource Text.Label}" />
+                    <Border CornerRadius="8" BorderThickness="1" Padding="11,0" Height="34" Margin="0,8,0,0"
+                            Background="{DynamicResource Brush.Input}" BorderBrush="{DynamicResource Brush.BorderStrong}">
+                        <TextBlock Text="{Binding InstallDir}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Brush.TextMuted}" ToolTip="{Binding InstallDir}" />
+                    </Border>
+                    <TextBlock Text="Just for your account — no administrator rights needed." Style="{StaticResource Text.Faint}"
+                               FontSize="12" Margin="2,6,0,0" />
+
+                    <CheckBox Style="{StaticResource Switch}" Content="Start menu shortcut"
+                              IsChecked="{Binding StartMenuShortcut}" Margin="0,16,0,0" />
+                    <CheckBox Style="{StaticResource Switch}" Content="Desktop shortcut"
+                              IsChecked="{Binding DesktopShortcut}" Margin="0,10,0,0" />
+                    <CheckBox Style="{StaticResource Switch}" Content="Explorer right-click menu"
+                              IsChecked="{Binding ExplorerMenu}" Margin="0,10,0,0"
+                              ToolTip="Adds &quot;Combine with Part Combiner&quot; to the right-click menu of split parts and folders." />
+                </StackPanel>
+            </Border>
+
+            <!-- Uninstall options -->
+            <Border Style="{StaticResource Card}" Margin="0,20,0,0" Padding="18,14,18,16"
+                    Visibility="{Binding IsUninstall, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" Content="Also remove my settings"
+                              IsChecked="{Binding RemoveSettings}" />
+                    <TextBlock Text="Your output folder, window size and other preferences." Style="{StaticResource Text.Faint}"
+                               FontSize="12" Margin="46,4,0,0" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="{Binding ErrorText}" Foreground="{DynamicResource Brush.Danger}" TextWrapping="Wrap" Margin="2,14,0,0"
+                       Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+        </StackPanel>
+
+        <!-- ===== Working ===== -->
+        <StackPanel Grid.Row="1" Margin="0,48,0,40" HorizontalAlignment="Center"
+                    Visibility="{Binding IsWorking, Converter={StaticResource BoolToVis}}">
+            <Grid Width="60" Height="60" HorizontalAlignment="Center">
+                <Ellipse Fill="{DynamicResource Brush.AccentSoft}" />
+                <TextBlock Style="{StaticResource Icon}" Text="&#xE896;" FontSize="24"
+                           Foreground="{DynamicResource Brush.Accent}" HorizontalAlignment="Center" />
+            </Grid>
+            <TextBlock Text="{Binding WorkingText}" FontFamily="{StaticResource Font.Display}" FontSize="17"
+                       FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,16,0,0" />
+        </StackPanel>
+
+        <!-- ===== Done ===== -->
+        <StackPanel Grid.Row="1" Margin="0,40,0,20" Visibility="{Binding IsDone, Converter={StaticResource BoolToVis}}">
+            <Grid Width="64" Height="64" HorizontalAlignment="Center">
+                <Ellipse Fill="{DynamicResource Brush.Success}" Opacity="0.16" />
+                <TextBlock Style="{StaticResource Icon}" Text="&#xE73E;" FontSize="26"
+                           Foreground="{DynamicResource Brush.Success}" HorizontalAlignment="Center" />
+            </Grid>
+            <TextBlock Text="{Binding DoneHeading}" FontFamily="{StaticResource Font.Display}" FontSize="20" FontWeight="SemiBold"
+                       HorizontalAlignment="Center" Margin="0,18,0,0" />
+            <TextBlock Text="{Binding DoneText}" Style="{StaticResource Text.Muted}" HorizontalAlignment="Center"
+                       TextAlignment="Center" TextWrapping="Wrap" Margin="0,6,0,0" />
+            <CheckBox Style="{StaticResource Switch}" Content="Open Part Combiner now" HorizontalAlignment="Center"
+                      IsChecked="{Binding LaunchWhenDone}" Margin="0,22,0,0"
+                      Visibility="{Binding IsInstall, Converter={StaticResource BoolToVis}}" />
+        </StackPanel>
+
+        <!-- Footer -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+            <Button Style="{StaticResource Button.Secondary}" Content="Cancel" Margin="0,0,8,0" Click="OnCancel"
+                    Visibility="{Binding IsReady, Converter={StaticResource BoolToVis}}" />
+            <Button x:Name="InstallButton" Style="{StaticResource Button.Primary}" Content="{Binding ActionText}" MinWidth="124"
+                    Click="OnAction" IsDefault="True"
+                    Visibility="{Binding ShowInstallButton, Converter={StaticResource BoolToVis}}" />
+            <Button x:Name="UninstallButton" Style="{StaticResource Button.Danger}" Content="Uninstall" MinWidth="124"
+                    Click="OnAction" Visibility="{Binding ShowUninstallButton, Converter={StaticResource BoolToVis}}" />
+            <Button Style="{StaticResource Button.Primary}" Content="{Binding FinishText}" MinWidth="124" Click="OnFinish"
+                    IsDefault="True" Visibility="{Binding IsDone, Converter={StaticResource BoolToVis}}" />
+        </StackPanel>
+    </Grid>
+</Window>
