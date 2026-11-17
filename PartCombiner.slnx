@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PartCombiner.App/PartCombiner.App.csproj" />
+    <Project Path="src/PartCombiner.Core/PartCombiner.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PartCombiner.Tests/PartCombiner.Tests.csproj" />
+  </Folder>
+</Solution>
