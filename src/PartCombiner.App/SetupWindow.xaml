@@ -55,7 +55,7 @@
                               IsChecked="{Binding DesktopShortcut}" Margin="0,10,0,0" />
                     <CheckBox Style="{StaticResource Switch}" Content="Explorer right-click menu"
                               IsChecked="{Binding ExplorerMenu}" Margin="0,10,0,0"
-                              ToolTip="Adds &quot;Combine with Part Combiner&quot; to the right-click menu of split parts and folders." />
+                              ToolTip="Adds a Part Combiner submenu (Split into parts, Combine parts) to the right-click menu of files and folders." />
                 </StackPanel>
             </Border>
 

@@ -48,7 +48,7 @@ extracted with 7-Zip into the folder next to the parts:
 | **Move parts to Recycle Bin** | After a successful combine only. Windows asks before deleting anything too big for the Recycle Bin. |
 | **Open folder when done** | Shows the result in Explorer. |
 | **Check for updates** | Looks for a newer release on GitHub when the app starts (on by default). |
-| **Explorer right-click menu** | Adds *Combine with Part Combiner* to the right-click menu of part files (`.001`, `.part1`, `.r00`, `.z01`, `.rar` …) and folders. On Windows 11 it's under *Show more options*. Written for your account only (no admin); turning it off removes it again. If you move the exe, the entry follows it the next time you start the app. |
+| **Explorer right-click menu** | Adds a *Part Combiner* submenu to the right-click menu, like 7-Zip's: *Split into parts…* on every file and folder, and *Combine parts* on split parts (`.001`, `.part1`, `.r00`, `.z01`, `.rar` …) and folders. It works while the app is closed. On Windows 11 it's under *Show more options*, next to 7-Zip. Written for your account only (no admin); turning it off removes it again. If you move the exe, the entry follows it the next time you start the app. |
 
 ## Splitting
 

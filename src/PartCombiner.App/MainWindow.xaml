@@ -422,7 +422,7 @@
                                   ToolTip="Looks for a newer version on GitHub when Part Combiner starts. Nothing about you or your files is sent." />
                         <CheckBox Style="{StaticResource Switch}" Content="Explorer right-click menu"
                                   IsChecked="{Binding ShowInExplorerMenu}" Margin="0,0,0,10"
-                                  ToolTip="Adds &quot;Combine with Part Combiner&quot; to the right-click menu of split parts and folders.&#x0a;On Windows 11 it's under &quot;Show more options&quot;. Only for your account; no admin needed." />
+                                  ToolTip="Adds a Part Combiner submenu to the right-click menu of every file and folder: Split into parts, and Combine parts on split parts.&#x0a;It works while Part Combiner is closed. On Windows 11 it's under &quot;Show more options&quot;. Only for your account; no admin needed." />
                     </WrapPanel>
                 </Grid>
             </Border>

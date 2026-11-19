@@ -288,7 +288,7 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    /// <summary>The "Combine with Part Combiner" item in Explorer's right-click menu (stored in the registry, not settings).</summary>
+    /// <summary>The "Part Combiner" submenu in Explorer's right-click menu (stored in the registry, not settings).</summary>
     public bool ShowInExplorerMenu
     {
         get

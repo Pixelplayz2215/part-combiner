@@ -4,14 +4,21 @@ using Microsoft.Win32;
 namespace PartCombiner.Core;
 
 /// <summary>
-/// The optional "Combine with Part Combiner" item in Explorer's right-click menu, for part files and folders.
-/// It's written per user under HKCU\Software\Classes, so no admin rights are needed. On Windows 11 it appears
-/// under "Show more options".
+/// The optional "Part Combiner" submenu in Explorer's right-click menu, like 7-Zip's: "Split into parts…" on every
+/// file and folder, and "Combine parts" on split parts and folders. It's plain registry entries under
+/// HKCU\Software\Classes, so it works while the app is closed and needs no admin rights. On Windows 11 it appears
+/// under "Show more options", next to 7-Zip.
 /// </summary>
 public sealed class ShellMenu
 {
-    public const string MenuText = "Combine with Part Combiner";
-    private const string VerbName = "PartCombiner.Combine";
+    public const string MenuText = "Part Combiner";
+    public const string CombineText = "Combine parts";
+    public const string SplitText = "Split into parts…";
+    private const string MenuKey = "PartCombiner";
+    private const string CombineKey = "1.combine";
+    private const string SplitKey = "2.split";
+    /// <summary>Before 1.4 there was a single "Combine with Part Combiner" item under this name.</summary>
+    private const string LegacyVerb = "PartCombiner.Combine";
 
     /// <summary>
     /// Which files show the item, as a Windows Search (AQS) filter on the last extension. Covers .001 … .999 and
@@ -27,64 +34,98 @@ public sealed class ShellMenu
 
     public static ShellMenu Current { get; } = new(@"Software\Classes");
 
-    private string FileVerb => $@"{_classesRoot}\*\shell\{VerbName}";
-    private string FolderVerb => $@"{_classesRoot}\Directory\shell\{VerbName}";
+    private string FileMenu => $@"{_classesRoot}\*\shell\{MenuKey}";
+    private string FolderMenu => $@"{_classesRoot}\Directory\shell\{MenuKey}";
+    private string LegacyFile => $@"{_classesRoot}\*\shell\{LegacyVerb}";
+    private string LegacyFolder => $@"{_classesRoot}\Directory\shell\{LegacyVerb}";
 
-    public bool IsEnabled
-    {
-        get
-        {
-            using var key = Registry.CurrentUser.OpenSubKey(FileVerb);
-            return key is not null;
-        }
-    }
+    public bool IsEnabled => KeyExists(FileMenu) || KeyExists(LegacyFile);
 
-    /// <summary>The exe the menu item currently starts, or null when it isn't set up.</summary>
-    public string? RegisteredExe
-    {
-        get
-        {
-            using var key = Registry.CurrentUser.OpenSubKey(FileVerb + @"\command");
-            return key?.GetValue(null) is string command && command.StartsWith('"')
-                ? command[1..Math.Max(1, command.IndexOf('"', 1))]
-                : null;
-        }
-    }
+    /// <summary>True when the old single-item entry is still there and should be upgraded to the submenu.</summary>
+    internal bool HasLegacyEntry => KeyExists(LegacyFile) || KeyExists(LegacyFolder);
+
+    /// <summary>The exe the menu starts, or null when it isn't set up.</summary>
+    public string? RegisteredExe =>
+        ExeFrom($@"{FileMenu}\shell\{CombineKey}\command") ?? ExeFrom($@"{FileMenu}\shell\{SplitKey}\command") ?? ExeFrom(LegacyFile + @"\command");
 
     public void Enable(string exePath)
     {
-        Write(FileVerb, exePath, AppliesTo);
-        Write(FolderVerb, exePath, appliesTo: null);
+        RemoveLegacy();
+        // Files: Split on everything, Combine only on names that look like parts.
+        WriteMenu(FileMenu, exePath, combineAppliesTo: AppliesTo);
+        // Folders: both (combine the parts inside, or pack the folder and split it).
+        WriteMenu(FolderMenu, exePath, combineAppliesTo: null);
         NotifyExplorer();
     }
 
     public void Disable()
     {
-        Registry.CurrentUser.DeleteSubKeyTree(FileVerb, throwOnMissingSubKey: false);
-        Registry.CurrentUser.DeleteSubKeyTree(FolderVerb, throwOnMissingSubKey: false);
+        Registry.CurrentUser.DeleteSubKeyTree(FileMenu, throwOnMissingSubKey: false);
+        Registry.CurrentUser.DeleteSubKeyTree(FolderMenu, throwOnMissingSubKey: false);
+        RemoveLegacy();
         NotifyExplorer();
     }
 
-    /// <summary>If the item points at an exe that no longer exists (the app was moved), point it at this one.</summary>
+    /// <summary>
+    /// Keeps the menu working: if it points at an exe that no longer exists (the app was moved), point it at this
+    /// one; and turn the old single "Combine with Part Combiner" item into the submenu.
+    /// </summary>
     public void RepairIfMoved(string exePath)
     {
         try
         {
-            if (IsEnabled && RegisteredExe is { } registered && !File.Exists(registered) && File.Exists(exePath))
+            if (!IsEnabled || RegisteredExe is not { } registered) return;
+            if (!File.Exists(registered) && File.Exists(exePath))
                 Enable(exePath);
+            else if (HasLegacyEntry && File.Exists(registered))
+                Enable(registered); // same exe, new layout
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException) { }
     }
 
-    private static void Write(string path, string exePath, string? appliesTo)
+    private static void WriteMenu(string path, string exePath, string? combineAppliesTo)
     {
-        using var verb = Registry.CurrentUser.CreateSubKey(path);
-        verb.SetValue("MUIVerb", MenuText);
-        verb.SetValue("Icon", $"\"{exePath}\",0");
-        if (appliesTo is not null)
-            verb.SetValue("AppliesTo", appliesTo);
-        using var command = verb.CreateSubKey("command");
-        command.SetValue(null, $"\"{exePath}\" \"%1\"");
+        Registry.CurrentUser.DeleteSubKeyTree(path, throwOnMissingSubKey: false); // start clean
+        using var menu = Registry.CurrentUser.CreateSubKey(path);
+        menu.SetValue("MUIVerb", MenuText);
+        menu.SetValue("Icon", $"\"{exePath}\",0");
+        menu.SetValue("SubCommands", ""); // empty = the items are in the "shell" key below (a cascading menu)
+
+        using (var combine = menu.CreateSubKey($@"shell\{CombineKey}"))
+        {
+            combine.SetValue("MUIVerb", CombineText);
+            combine.SetValue("Icon", $"\"{exePath}\",0");
+            if (combineAppliesTo is not null)
+                combine.SetValue("AppliesTo", combineAppliesTo);
+            using var command = combine.CreateSubKey("command");
+            command.SetValue(null, $"\"{exePath}\" \"%1\"");
+        }
+        using (var split = menu.CreateSubKey($@"shell\{SplitKey}"))
+        {
+            split.SetValue("MUIVerb", SplitText);
+            using var command = split.CreateSubKey("command");
+            command.SetValue(null, $"\"{exePath}\" --split \"%1\"");
+        }
+    }
+
+    private void RemoveLegacy()
+    {
+        Registry.CurrentUser.DeleteSubKeyTree(LegacyFile, throwOnMissingSubKey: false);
+        Registry.CurrentUser.DeleteSubKeyTree(LegacyFolder, throwOnMissingSubKey: false);
+    }
+
+    private static bool KeyExists(string path)
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(path);
+        return key is not null;
+    }
+
+    private static string? ExeFrom(string commandKey)
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(commandKey);
+        return key?.GetValue(null) is string command && command.StartsWith('"')
+            ? command[1..Math.Max(1, command.IndexOf('"', 1))]
+            : null;
     }
 
     private static string BuildAppliesTo()

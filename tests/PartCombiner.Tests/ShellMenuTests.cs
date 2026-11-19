@@ -12,7 +12,7 @@ public sealed class ShellMenuTests : IDisposable
     public void Dispose() => Registry.CurrentUser.DeleteSubKeyTree(_root, throwOnMissingSubKey: false);
 
     [Fact]
-    public void Enable_WritesFileAndFolderVerbs_AndDisableRemovesThem()
+    public void Enable_WritesASubmenuForFilesAndFolders_AndDisableRemovesIt()
     {
         var menu = new ShellMenu(_root);
         Assert.False(menu.IsEnabled);
@@ -22,17 +22,53 @@ public sealed class ShellMenuTests : IDisposable
         Assert.True(menu.IsEnabled);
         Assert.Equal(exe, menu.RegisteredExe);
 
-        using (var file = Registry.CurrentUser.OpenSubKey(_root + @"\*\shell\PartCombiner.Combine")!)
+        foreach (var target in new[] { "*", "Directory" })
         {
-            Assert.Equal(ShellMenu.MenuText, file.GetValue("MUIVerb"));
-            Assert.Equal(ShellMenu.AppliesTo, file.GetValue("AppliesTo"));
+            using var top = Registry.CurrentUser.OpenSubKey($@"{_root}\{target}\shell\PartCombiner")!;
+            Assert.Equal(ShellMenu.MenuText, top.GetValue("MUIVerb"));
+            Assert.Equal("", top.GetValue("SubCommands"));
+            Assert.Null(top.GetValue("AppliesTo")); // the submenu itself shows on everything
+
+            using var split = top.OpenSubKey(@"shell\2.split\command")!;
+            Assert.Equal($"\"{exe}\" --split \"%1\"", split.GetValue(null));
+            using var combine = top.OpenSubKey(@"shell\1.combine")!;
+            using var combineCommand = combine.OpenSubKey("command")!;
+            Assert.Equal($"\"{exe}\" \"%1\"", combineCommand.GetValue(null));
+            // Combine is only offered on files that look like parts; folders always get it.
+            Assert.Equal(target == "*" ? ShellMenu.AppliesTo : null, combine.GetValue("AppliesTo"));
         }
-        using (var command = Registry.CurrentUser.OpenSubKey(_root + @"\Directory\shell\PartCombiner.Combine\command")!)
-            Assert.Equal($"\"{exe}\" \"%1\"", command.GetValue(null));
 
         menu.Disable();
         Assert.False(menu.IsEnabled);
-        Assert.Null(Registry.CurrentUser.OpenSubKey(_root + @"\Directory\shell\PartCombiner.Combine"));
+        Assert.Null(Registry.CurrentUser.OpenSubKey(_root + @"\Directory\shell\PartCombiner"));
+        Assert.Null(Registry.CurrentUser.OpenSubKey(_root + @"\*\shell\PartCombiner"));
+    }
+
+    [Fact]
+    public void OldSingleItemEntry_IsUpgradedToTheSubmenu()
+    {
+        using var d = new TempDir();
+        var exe = d.File("PartCombiner.exe", 10);
+        // What versions up to 1.3 wrote.
+        foreach (var target in new[] { "*", "Directory" })
+        {
+            using var verb = Registry.CurrentUser.CreateSubKey($@"{_root}\{target}\shell\PartCombiner.Combine");
+            verb.SetValue("MUIVerb", "Combine with Part Combiner");
+            using var command = verb.CreateSubKey("command");
+            command.SetValue(null, $"\"{exe}\" \"%1\"");
+        }
+        var menu = new ShellMenu(_root);
+        Assert.True(menu.IsEnabled);
+        Assert.Equal(exe, menu.RegisteredExe);
+
+        menu.RepairIfMoved(exe);
+        Assert.False(menu.HasLegacyEntry);
+        Assert.Equal(exe, menu.RegisteredExe);
+        using var split = Registry.CurrentUser.OpenSubKey($@"{_root}\*\shell\PartCombiner\shell\2.split\command")!;
+        Assert.Equal($"\"{exe}\" --split \"%1\"", split.GetValue(null));
+
+        menu.Disable(); // and turning it off removes old and new alike
+        Assert.False(menu.IsEnabled);
     }
 
     [Fact]
