@@ -13,7 +13,7 @@
     <Product>Part Combiner</Product>
     <AssemblyTitle>Part Combiner</AssemblyTitle>
     <Description>Rejoins split archives and files.</Description>
-    <Version>1.3.0</Version>
+    <Version>1.4.0</Version>
   </PropertyGroup>
 
   <!-- dotnet publish → one PartCombiner.exe -->
